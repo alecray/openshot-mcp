@@ -1,9 +1,17 @@
-"""In-memory model of an OpenShot 4.0 ``.osp`` project with file-level load/save."""
+"""In-memory model of an OpenShot 4.0 ``.osp`` project with file-level load/save.
+
+Path model mirrors OpenShot's own ``json_data.py`` codec: on disk, media paths on the same drive
+as the project are stored relative to the project folder (forward slashes), paths under the
+project's ``<stem>_assets`` folder are stored as ``@assets/...``, and cross-drive paths stay
+absolute. In memory every path is absolute so idempotent import and ffprobe work.
+"""
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import random
+import re
 import string
 import time
 from fractions import Fraction
@@ -15,6 +23,8 @@ from .media import TEMPLATES, clip_from_file, file_entry, norm_path
 
 SUPPORTED_VERSION = "4.0.0"
 ID_CHARS = string.ascii_uppercase + string.digits
+PATH_KEYS = ("image", "path", "resource", "protobuf_data_path", "lut_path")
+MARKER_COLORS = ("blue", "red", "green", "yellow", "purple", "orange", "white")
 
 
 def gen_id(existing: set[str]) -> str:
@@ -24,54 +34,120 @@ def gen_id(existing: set[str]) -> str:
             return i
 
 
+def _walk_paths(node, fn):
+    """Apply ``fn(value) -> value`` to every string under a PATH_KEYS key, recursively."""
+    if isinstance(node, dict):
+        for k, v in node.items():
+            if k in PATH_KEYS and isinstance(v, str):
+                node[k] = fn(v)
+            else:
+                _walk_paths(v, fn)
+    elif isinstance(node, list):
+        for v in node:
+            _walk_paths(v, fn)
+
+
+def assets_dir(project_path: Path) -> Path:
+    return project_path.with_name(project_path.stem + "_assets")
+
+
+def to_absolute(path: str, project_path: Path) -> str:
+    if path == "" or path.startswith(("@transitions", "@colors", "@emojis")):
+        return path
+    if path.startswith("@assets"):
+        return norm_path(str(assets_dir(project_path)) + path[len("@assets"):])
+    if os.path.isabs(path) or re.match(r"^[A-Za-z]:", path):
+        return path.replace("\\", "/")
+    return norm_path(project_path.parent / path)
+
+
+def to_relative(path: str, project_path: Path) -> str:
+    if path == "" or path.startswith("@"):
+        return path
+    ap = Path(path)
+    if not ap.is_absolute():
+        return path
+    assets = assets_dir(project_path)
+    try:
+        return "@assets/" + ap.relative_to(assets).as_posix()
+    except ValueError:
+        pass
+    if os.path.splitdrive(str(ap))[0].lower() != os.path.splitdrive(str(project_path.resolve()))[0].lower():
+        return str(ap).replace("\\", "/")
+    return os.path.relpath(ap, project_path.parent).replace("\\", "/")
+
+
+def _sha256(p: Path) -> str:
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
 class Project:
-    def __init__(self, data: dict, path: Path | None):
+    def __init__(self, data: dict, path: Path | None, source_hash: str | None = None):
         self.data = data
         self.path = path
+        self.source_hash = source_hash
         self.grid: BeatGrid | None = None
-        self.data.setdefault("files", [])
-        self.data.setdefault("clips", [])
-        self.data.setdefault("markers", [])
-        self.data.setdefault("layers", [])
+        for k in ("files", "clips", "markers", "layers", "effects"):
+            self.data.setdefault(k, [])
+        if path is not None:
+            _walk_paths(self.data, lambda s: to_absolute(s, path))
 
     # ---- lifecycle ---------------------------------------------------------
     @classmethod
     def load(cls, path: str | Path) -> "Project":
-        p = Path(path)
+        p = Path(path).resolve()
         data = json.loads(p.read_text(encoding="utf-8"))
         ver = (data.get("version") or {}).get("openshot-qt")
         if ver != SUPPORTED_VERSION:
             raise ValueError(f"Unsupported openshot-qt project version {ver!r}; this server supports {SUPPORTED_VERSION}")
-        return cls(data, p)
+        return cls(data, p, _sha256(p))
 
     @classmethod
     def new(cls, path: str | Path, template: str = "empty_720p30.osp") -> "Project":
         data = json.loads((TEMPLATES / template).read_text(encoding="utf-8"))
-        return cls(data, Path(path))
+        return cls(data, Path(path).resolve())
 
     def save(self, path: str | Path | None = None, backup: bool = True, force: bool = False,
              check_lock: bool = True) -> dict:
-        target = Path(path) if path else self.path
+        target = Path(path).resolve() if path else self.path
         if target is None:
             raise ValueError("no path to save to")
+        same_file = self.path is not None and target == self.path
         if check_lock and not force and lock.is_open_in_openshot(target):
             raise RuntimeError(
                 f"OpenShot has {target.name} open; its autosave would overwrite this write. "
-                "Close the project in OpenShot (or pass force=True)."
+                "Close the project in OpenShot (or pass force=True if you are sure it is not open)."
+            )
+        if same_file and self.source_hash and target.exists() and _sha256(target) != self.source_hash:
+            raise RuntimeError(
+                f"{target.name} changed on disk since open_project (someone saved it). "
+                "Refusing to overwrite; re-open the project and redo the edits."
             )
         problems = self.validate()
-        if problems and not force:
+        if problems:
             raise ValueError("project invalid, refusing to save: " + "; ".join(problems))
         backup_path = None
         if backup and target.exists():
             backup_path = target.with_name(f"{target.stem}.{time.strftime('%Y%m%d-%H%M%S')}.osp.bak")
             backup_path.write_bytes(target.read_bytes())
-        self.data["history"] = {"undo": [], "redo": []}
-        tmp = target.with_suffix(".osp.tmp")
-        tmp.write_text(json.dumps(self.data, indent=1), encoding="utf-8")
-        os.replace(tmp, target)
+        out = json.loads(json.dumps(self.data))  # deep copy
+        out["history"] = {"undo": [], "redo": []}
+        _walk_paths(out, lambda s: to_relative(s, target))
+        text = json.dumps(out, indent=1)
+        tmp = target.with_name(target.name + ".tmp")
+        try:
+            with open(tmp, "w", encoding="utf-8") as fh:
+                fh.write(text)
+                fh.flush()
+                os.fsync(fh.fileno())
+            json.loads(tmp.read_text(encoding="utf-8"))  # parse back before replacing
+            os.replace(tmp, target)
+        finally:
+            if tmp.exists():
+                tmp.unlink()
         self.path = target
-        return {"path": str(target), "backup": str(backup_path) if backup_path else None, "problems": problems}
+        self.source_hash = _sha256(target)
+        return {"path": str(target), "backup": str(backup_path) if backup_path else None}
 
     # ---- accessors ---------------------------------------------------------
     @property
@@ -105,18 +181,22 @@ class Project:
             "height": self.data.get("height"),
             "profile": self.data.get("profile"),
             "layers": [{"id": l["id"], "number": l["number"], "label": l.get("label", "")} for l in self.data["layers"]],
-            "files": len(self.data["files"]),
+            "files": self.list_media(),
             "clips": len(self.data["clips"]),
             "markers": len(self.data["markers"]),
             "grid": self.grid.as_dict() if self.grid else None,
             "open_in_openshot": lock.is_open_in_openshot(self.path) if self.path else False,
         }
 
+    def list_media(self) -> list[dict]:
+        return [{k: f.get(k) for k in ("id", "path", "media_type", "duration", "fps", "width", "height", "has_audio")}
+                for f in self.data["files"]]
+
     # ---- media -------------------------------------------------------------
     def import_media(self, path: str | Path) -> dict:
         np_ = norm_path(path)
         for f in self.data["files"]:
-            if f["path"] == np_:
+            if f["path"].lower() == np_.lower():
                 return f
         entry = file_entry(path, gen_id(self._ids()))
         self.data["files"].append(entry)
@@ -137,8 +217,8 @@ class Project:
                 out.append(c["id"])
         return out
 
-    def _frame(self, t: float) -> int:
-        return int(round(Fraction(t) * self.fps_frac))
+    def _frame(self, t) -> int:
+        return int(round(Fraction(str(t)) * self.fps_frac))
 
     def _s(self, frame: int) -> float:
         return float(Fraction(frame) / self.fps_frac)
@@ -148,18 +228,20 @@ class Project:
                  allow_overlap: bool = False) -> dict:
         self._layer_ok(layer)
         f = self.file(file_id)
+        if snap not in ("beat", "bar", "none"):
+            raise ValueError("snap must be beat | bar | none")
         if snap != "none" and self.grid is None:
             raise ValueError("no beat grid set; call analyze_music/set_grid or use snap='none'")
         if self.grid is not None:
             pos_frame, pos = self.grid.snap(position_s, snap)
         else:
-            pos_frame, pos = self._frame(position_s), self._s(self._frame(position_s))
+            pos_frame = self._frame(position_s)
+            pos = self._s(pos_frame)
         file_dur = float(f["duration"])
         start = self._s(self._frame(start_s))
         if end_s is None:
             if self.grid is not None and snap != "none":
-                nxt = self.grid.next_line_after(pos, snap)
-                end = start + (nxt - pos)
+                end = start + (self.grid.next_line_after(pos, snap) - pos)
             else:
                 end = file_dur
         else:
@@ -177,17 +259,18 @@ class Project:
 
     def place_sequence(self, layer: int, items: list[dict], from_s: float = 0.0, snap: str = "beat",
                        default_beats: float = 4, allow_overlap: bool = False) -> list[dict]:
+        """Lay items back-to-back; boundary k is frame F(n_k) = round(beat_time(n_k) * fps), never accumulated."""
         if self.grid is None:
             raise ValueError("no beat grid set; call analyze_music/set_grid first")
         g = self.grid
-        n = g.nearest_beat(from_s)
+        n = Fraction(g.nearest_beat(from_s))
         out = []
         for it in items:
-            beats = float(it.get("beats", default_beats))
-            f0 = g.to_frame(g.beat_time(n))
-            n_end = n + beats
-            f1 = g.to_frame(g.beat_time(int(n_end)) if float(n_end).is_integer() else
-                            g.beat_time(0) + Fraction(n_end).limit_denominator(1000) * g.beat_len)
+            beats = Fraction(str(it.get("beats", default_beats)))
+            if beats <= 0:
+                raise ValueError("beats must be positive")
+            f0 = g.to_frame(g.beat_time_frac(n))
+            f1 = g.to_frame(g.beat_time_frac(n + beats))
             pos, dur = g.frame_to_s(f0), g.frame_to_s(f1) - g.frame_to_s(f0)
             start = self._s(self._frame(it.get("start_s", 0.0)))
             f = self.file(it["file_id"])
@@ -195,14 +278,15 @@ class Project:
             c = self.add_clip(it["file_id"], layer, pos, start, end, snap="none",
                               title=it.get("title"), allow_overlap=allow_overlap)
             out.append(c)
-            n = int(n_end) if float(n_end).is_integer() else n_end
+            n += beats
         return out
 
     def update_clip(self, clip_id: str, **kw) -> dict:
         c = self.clip(clip_id)
         f = self.file(c["file_id"])
-        if "layer" in kw and kw["layer"] is not None:
-            self._layer_ok(kw["layer"]); c["layer"] = int(kw["layer"])
+        if kw.get("layer") is not None:
+            self._layer_ok(kw["layer"])
+            c["layer"] = int(kw["layer"])
         if kw.get("position_s") is not None:
             c["position"] = self._s(self._frame(kw["position_s"]))
         if kw.get("start_s") is not None:
@@ -222,6 +306,10 @@ class Project:
 
     # ---- markers -----------------------------------------------------------
     def add_marker(self, position_s: float, title: str = "", color: str = "blue") -> dict:
+        """OpenShot 4.0 markers are {id, position, icon, vector}. ``title`` is stored for the agent's
+        benefit only; OpenShot does not display it. Only ``blue`` is verified to have an icon."""
+        if color not in MARKER_COLORS:
+            raise ValueError(f"color must be one of {MARKER_COLORS}")
         m = {"id": gen_id(self._ids()), "position": self._s(self._frame(position_s)),
              "icon": f"{color}.png", "vector": color}
         if title:
@@ -260,7 +348,7 @@ class Project:
 
     def validate(self) -> list[str]:
         problems = []
-        ids = [x["id"] for k in ("files", "clips", "markers") for x in self.data.get(k, [])]
+        ids = [x["id"] for k in ("files", "clips", "markers", "effects") for x in self.data.get(k, [])]
         if len(ids) != len(set(ids)):
             problems.append("duplicate ids")
         fids = {f["id"] for f in self.data["files"]}
@@ -270,6 +358,10 @@ class Project:
                 problems.append(f"clip {c['id']} has dangling file_id {c['file_id']}")
                 continue
             f = self.file(c["file_id"])
+            for k in ("position", "start", "end", "duration"):
+                v = c.get(k)
+                if not isinstance(v, (int, float)) or v != v or v < 0:
+                    problems.append(f"clip {c['id']} {k} is not a finite non-negative number")
             if c["start"] >= c["end"]:
                 problems.append(f"clip {c['id']} start>=end")
             if c["end"] > float(f["duration"]) + 1e-6:
@@ -278,7 +370,8 @@ class Project:
                 problems.append(f"clip {c['id']} on unknown layer {c['layer']}")
             if abs(c["duration"] - (c["end"] - c["start"])) > 1e-6:
                 problems.append(f"clip {c['id']} duration != end-start")
-        tl = self.timeline()
-        for o in tl["overlaps"]:
+            if c.get("reader", {}).get("id") != c["file_id"]:
+                problems.append(f"clip {c['id']} reader.id != file_id")
+        for o in self.timeline()["overlaps"]:
             problems.append(f"overlap on layer {o['layer']}: {o['a']} / {o['b']} ({o['overlap_s']:.3f}s)")
         return problems

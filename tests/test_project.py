@@ -91,3 +91,47 @@ def test_analyze_music_known_click():
     g = analyze_wav(WAV, fps={"num": 30, "den": 1})
     assert abs(g.bpm - 88) <= 1.0
     assert g.offset_s == pytest.approx(0.0, abs=0.02)
+
+
+def test_unknown_keys_and_relative_paths_survive_roundtrip(tmp_path):
+    """Sentinel keys are preserved; same-drive paths are written relative and read back absolute."""
+    src = json.loads(TEMPLATE.read_text(encoding="utf-8"))
+    src["settings"] = {"sentinel_unknown": 1}
+    proj = tmp_path / "p.osp"
+    proj.write_text(json.dumps(src), encoding="utf-8")
+    p = Project.load(proj)
+    f = p.import_media(MP4)
+    assert Path(f["path"]).is_absolute()
+    p.grid = BeatGrid(bpm=88, offset_s=0.0, fps=p.fps)
+    p.add_clip(f["id"], layer=3000000, position_s=0.0, end_s=0.5, snap="none")
+    p.save(check_lock=False, backup=False)
+    on_disk = json.loads(proj.read_text(encoding="utf-8"))
+    assert on_disk["settings"] == {"sentinel_unknown": 1}
+    stored = on_disk["files"][0]["path"]
+    same_drive = proj.drive.lower() == MP4.drive.lower()
+    assert (not Path(stored).is_absolute()) == same_drive, stored
+    assert on_disk["clips"][0]["reader"]["path"] == stored
+    assert on_disk["history"] == {"undo": [], "redo": []}
+    again = Project.load(proj)
+    assert again.file(f["id"])["path"] == f["path"]
+    assert again.validate() == []
+
+
+def test_save_refuses_if_changed_on_disk(tmp_path):
+    proj = tmp_path / "p.osp"
+    proj.write_text(TEMPLATE.read_text(encoding="utf-8"), encoding="utf-8")
+    p = Project.load(proj)
+    proj.write_text(TEMPLATE.read_text(encoding="utf-8") + "\n", encoding="utf-8")  # someone else saved
+    with pytest.raises(RuntimeError):
+        p.save(check_lock=False, backup=False)
+
+
+def test_duration_is_frame_rounded():
+    import subprocess
+    p = Project.load(TEMPLATE)
+    f = p.import_media(MP4)
+    probe = json.loads(subprocess.run(["ffprobe", "-v", "error", "-show_streams", "-of", "json", str(MP4)],
+                                      capture_output=True, text=True).stdout)["streams"][0]
+    num, den = (int(x) for x in probe["time_base"].split("/"))
+    assert f["video_timebase"] == {"num": num, "den": den}
+    assert f["duration"] == pytest.approx(f["video_length"] / 60)

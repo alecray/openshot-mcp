@@ -64,6 +64,8 @@ def file_entry(path: str | Path, file_id: str) -> dict:
         fps, tb, width, height = Fraction(30), Fraction(1, 30), 1280, 720
         video_length = int(round(duration * 30))
         pr, dar, vcodec = Fraction(1), Fraction(1), ""
+    # libopenshot rounds the duration to whole frames of the chosen fps (audio-only files use 30 fps).
+    duration = float(Fraction(video_length) / fps)
 
     if audio is not None:
         sample_rate = int(audio.get("sample_rate", 0))

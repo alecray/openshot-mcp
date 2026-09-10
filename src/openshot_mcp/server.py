@@ -50,14 +50,24 @@ def import_media(paths: list[str]) -> list[dict]:
 
 
 @mcp.tool()
+def list_media() -> list[dict]:
+    """List imported files with their ids (needed for analyze_music / add_clip / place_sequence)."""
+    return _p().list_media()
+
+
+@mcp.tool()
 def analyze_music(file_id: str, bpm: Optional[float] = None, offset_s: Optional[float] = None,
                   sections: Optional[list[float]] = None, n_sections: int = 6,
-                  add_markers: bool = True) -> dict:
-    """Detect tempo/offset/sections of an imported audio file with librosa and set it as the beat grid.
-    Any explicit bpm/offset_s/sections override detection. Adds one marker per section by default."""
+                  add_markers: bool = True, apply: bool = True) -> dict:
+    """Detect tempo/offset of an imported audio file with librosa (onset-grid search, ~0.1 BPM) plus a
+    ROUGH section-change guess, and (apply=True) set it as the active beat grid. Explicit
+    bpm/offset_s/sections override detection. Adds one marker per section by default.
+    Markers show as icons in OpenShot; their titles are not displayed."""
     p = _p()
     f = p.file(file_id)
     g = analyze_wav(f["path"], p.fps, bpm=bpm, offset_s=offset_s, sections=sections, n_sections=n_sections)
+    if not apply:
+        return g.as_dict(total_s=float(f["duration"]))
     p.grid = g
     if add_markers:
         for s in g.sections:
@@ -123,7 +133,7 @@ def remove_clip(clip_id: str) -> dict:
 
 @mcp.tool()
 def add_marker(position_s: float, title: str = "", color: str = "blue") -> dict:
-    """Add a timeline marker. color: blue | red | green | yellow | purple (OpenShot's marker icons)."""
+    """Add a timeline marker (OpenShot shows an icon; the title is stored but not displayed). Use color=blue."""
     return _p().add_marker(position_s, title, color)
 
 
@@ -147,7 +157,8 @@ def validate_project() -> dict:
 
 @mcp.tool()
 def save_project(path: Optional[str] = None, backup: bool = True, force: bool = False) -> dict:
-    """Validate and atomically write the .osp (backup beside it). Refuses while OpenShot has it open."""
+    """Validate and atomically write the .osp (timestamped .bak beside it). Refuses while OpenShot has it
+    open (force=True bypasses that heuristic only) and refuses if the file changed on disk since open_project."""
     return _p().save(path, backup=backup, force=force)
 
 

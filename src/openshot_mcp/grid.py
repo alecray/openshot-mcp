@@ -35,26 +35,30 @@ class BeatGrid:
 
     @property
     def beat_len(self) -> Fraction:
-        return Fraction(60) / Fraction(self.bpm).limit_denominator(1000)
+        return Fraction(60) / Fraction(str(self.bpm))
 
     @property
     def bar_len(self) -> Fraction:
         return self.beat_len * self.beats_per_bar
 
     def beat_time(self, n: int) -> Fraction:
-        return Fraction(self.offset_s).limit_denominator(100000) + n * self.beat_len
+        return self.beat_time_frac(Fraction(n))
+
+    def beat_time_frac(self, n: Fraction) -> Fraction:
+        """Exact time of (possibly fractional) beat index n."""
+        return Fraction(str(self.offset_s)) + n * self.beat_len
 
     def bar_time(self, n: int) -> Fraction:
         return self.beat_time(n * self.beats_per_bar)
 
     def to_frame(self, t: Fraction | float) -> int:
-        return int(round(Fraction(t) * self.fps_frac))
+        return int(round(Fraction(str(t)) * self.fps_frac)) if not isinstance(t, Fraction) else int(round(t * self.fps_frac))
 
     def frame_to_s(self, frame: int) -> float:
         return float(Fraction(frame) / self.fps_frac)
 
     def nearest_beat(self, t: float) -> int:
-        return int(round((Fraction(t) - self.beat_time(0)) / self.beat_len))
+        return int(round((Fraction(str(t)) - self.beat_time(0)) / self.beat_len))
 
     def snap(self, t: float, unit: str = "beat") -> tuple[int, float]:
         """Return (frame, seconds) of ``t`` quantized to the nearest beat/bar line, frame-exact."""
