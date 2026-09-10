@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git branch*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git config core.hooksPath*)",
+      "Bash(just --list)",
+      "Bash(just test*)",
+      "Bash(just lint*)",
+      "Bash(just check*)",
+      "Read(**)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -Command \"Write-Output 'Reminder: re-read CLAUDE.md, docs/DESIGN.md, and docs/CURRENT_TASK.md before proceeding.'\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/protect-files.ps1"
+          }
+        ]
+      }
+    ]
+  }
+}

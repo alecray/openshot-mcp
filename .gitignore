@@ -1,0 +1,49 @@
+# Root .gitignore — minimal and stack-agnostic.
+# The stack-specific body is applied at bootstrap from meta/gitignores/<stack>.gitignore
+# by /init-project (or setup.ps1). Keep only universal ignores here.
+
+# --- Secrets / local env ---
+.env
+.env.local
+.env.*.local
+
+# --- Claude Code local (machine-specific) ---
+.claude/settings.local.json
+
+# NOTE: meta/ is template-only scaffolding. It is intentionally COMMITTED in the template repo
+# so it travels with copies, and is deleted at bootstrap by /init-project (or setup.ps1).
+# Do not ignore it here, or copies of the template won't get the stack gitignore fragments.
+
+# --- OS cruft ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# --- Editor / IDE (personal) ---
+.idea/
+.vs/
+*.suo
+*.user
+*.swp
+*~
+
+# --- Logs / temp ---
+*.log
+*.tmp
+
+# --- Generic ---
+# Common build/output dirs; trim to match the actual stack.
+build/
+dist/
+out/
+target/
+bin/
+obj/
+
+# Dependency caches
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+

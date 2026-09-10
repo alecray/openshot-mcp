@@ -1,0 +1,26 @@
+#!/bin/sh
+# commit-msg — enforce Conventional Commits. Runs through Git's bundled sh.
+# Enable once per clone:  git config core.hooksPath .githooks
+#
+# Accepts:  type(optional-scope)!: subject
+#   type ∈ feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert
+# Allows merge commits and fixup/squash commits to pass through.
+
+msg=$(head -n1 "$1")
+
+# Let Git's own machinery through.
+case "$msg" in
+    "Merge "*|"Revert "*|"fixup! "*|"squash! "*) exit 0 ;;
+esac
+
+if printf '%s' "$msg" | grep -Eq '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._-]+\))?!?: .+'; then
+    exit 0
+fi
+
+echo "ERROR: commit message must follow Conventional Commits."
+echo "  <type>(optional scope): <subject>"
+echo "  type ∈ feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
+echo "  e.g.  feat: add pause menu with settings"
+echo ""
+echo "  Got: $msg"
+exit 1

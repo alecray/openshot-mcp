@@ -1,0 +1,44 @@
+name: CI
+
+# Stack-agnostic CI: every step calls `just`, so this file never changes between projects —
+# only the justfile does. Advisory recipes that print "SKIP:" pass (they don't fail the build).
+# This workflow is per-project opt-in: delete it if a project has no CLI build/test (some
+# Unreal/Godot projects build only in the editor or a dedicated container).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false   # set true if the project tracks assets with Git LFS
+
+      - name: Install just
+        uses: extractions/setup-just@v4
+
+      # Install the stack toolchain here (uncomment what applies):
+      # - uses: actions/setup-node@v4   # with: { node-version: 22 }
+      # - uses: subosito/flutter-action@v2
+      # - uses: actions/setup-java@v4   # with: { distribution: temurin, java-version: 21 }
+
+      - name: Lint
+        run: just lint
+
+      - name: Test
+        run: just test
+
+      - name: Build
+        run: just build

@@ -1,0 +1,51 @@
+#!/bin/sh
+# pre-commit — bump a commit-count version stamp so the on-screen version tracks commits.
+# Runs through Git's bundled sh (Git Bash on Windows). Enable once per clone:
+#   git config core.hooksPath .githooks
+#
+# Multi-stack: detects the project type and bumps the right file. The commit being made
+# is (HEAD count + 1).
+
+count=$(git rev-list --count HEAD 2>/dev/null || echo 0)
+build=$((count + 1))
+
+# 1) Node — bump package.json patch version.
+if [ -f package.json ] && command -v node >/dev/null 2>&1; then
+    node -e "
+const fs = require('fs');
+const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+const parts = (pkg.version || '0.1.0').split('.');
+parts[2] = String(Number(parts[2] || 0) + 1);
+pkg.version = parts.join('.');
+fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+console.log('Version bumped to ' + pkg.version);
+"
+    git add package.json
+    exit 0
+fi
+
+# 2) Unreal — set Config/DefaultGame.ini ProjectVersion=0.1.<count>.
+ini="Config/DefaultGame.ini"
+if [ -f "$ini" ]; then
+    new="ProjectVersion=0.1.$build"
+    if grep -q '^ProjectVersion=' "$ini"; then
+        tmp="$ini.verbump.tmp"
+        sed "s/^ProjectVersion=.*/$new/" "$ini" > "$tmp" && mv "$tmp" "$ini"
+    else
+        printf '%s\n' "$new" >> "$ini"
+    fi
+    git add "$ini"
+    echo "ProjectVersion bumped to 0.1.$build"
+    exit 0
+fi
+
+# 3) Fallback — a top-level VERSION file.
+if [ -f VERSION ]; then
+    printf '0.1.%s\n' "$build" > VERSION
+    git add VERSION
+    echo "VERSION bumped to 0.1.$build"
+    exit 0
+fi
+
+# No recognized version file; nothing to do.
+exit 0

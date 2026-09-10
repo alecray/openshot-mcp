@@ -1,0 +1,19 @@
+[project]
+name = "openshot-mcp"
+version = "0.1.0"
+description = "File-level MCP server for OpenShot 4.0 projects: import media, analyze music into a beat grid, place clips on it."
+requires-python = ">=3.12"
+dependencies = ["mcp>=2", "librosa>=1.0", "soundfile", "numpy"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

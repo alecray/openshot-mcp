@@ -1,0 +1,95 @@
+# .gitattributes — normalize line endings and protect binaries.
+# Why this matters on Windows + AI agents: without `text=auto eol=lf`, Git's CRLF
+# heuristics flip line endings on every edit (noisy diffs), and ambiguous binary
+# files can get corrupted by newline conversion. Mark binaries explicitly.
+
+# Default: treat as text, store LF in the repo, check out LF.
+* text=auto eol=lf
+
+# --- Scripts that MUST stay CRLF on Windows ---
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.ps1   text eol=crlf
+*.sln   text eol=crlf
+
+# --- Common source/text formats: force LF ---
+*.md    text eol=lf
+*.txt   text eol=lf
+*.json  text eol=lf
+*.jsonc text eol=lf
+*.yaml  text eol=lf
+*.yml   text eol=lf
+*.toml  text eol=lf
+*.ini   text eol=lf
+*.cfg   text eol=lf
+*.sh    text eol=lf
+*.py    text eol=lf
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.js    text eol=lf
+*.jsx   text eol=lf
+*.dart  text eol=lf
+*.java  text eol=lf
+*.gradle text eol=lf
+*.cs    text eol=lf
+*.cpp   text eol=lf
+*.h     text eol=lf
+*.gd    text eol=lf
+
+# --- Engine text formats (Godot / Unity): force LF, never auto-merge weirdly ---
+*.tscn   text eol=lf
+*.tres   text eol=lf
+*.godot  text eol=lf
+*.import text eol=lf
+*.meta   text eol=lf
+*.uproject text eol=lf
+
+# --- Binary: never diff, never convert line endings ---
+# Images
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.bmp  binary
+*.ico  binary
+*.webp binary
+*.tga  binary
+*.psd  binary
+# Audio / video
+*.wav  binary
+*.mp3  binary
+*.ogg  binary
+*.flac binary
+*.mp4  binary
+*.mov  binary
+# Fonts
+*.ttf  binary
+*.otf  binary
+*.woff binary
+*.woff2 binary
+# 3D / engine assets
+*.blend binary
+*.fbx  binary
+*.glb  binary
+*.gltf binary
+*.obj  binary
+*.uasset binary
+*.umap binary
+*.aseprite binary
+*.ase  binary
+# Archives / libs / executables
+*.zip  binary
+*.7z   binary
+*.gz   binary
+*.dll  binary
+*.exe  binary
+*.lib  binary
+*.so   binary
+*.dylib binary
+*.pdf  binary
+
+# --- Git LFS (uncomment in projects that use LFS for large binaries) ---
+# *.uasset filter=lfs diff=lfs merge=lfs -text
+# *.umap   filter=lfs diff=lfs merge=lfs -text
+# *.blend  filter=lfs diff=lfs merge=lfs -text
+# *.fbx    filter=lfs diff=lfs merge=lfs -text

@@ -1,0 +1,32 @@
+# EditorConfig — consistent formatting across editors. https://editorconfig.org
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# Web / config families: 2-space is the community norm
+[*.{js,jsx,ts,tsx,vue,svelte,json,jsonc,yaml,yml,html,css,scss,less}]
+indent_size = 2
+
+# Dart (Flutter) uses 2-space
+[*.dart]
+indent_size = 2
+
+# Tab-indented by convention
+[Makefile]
+indent_style = tab
+[*.go]
+indent_style = tab
+
+# Markdown: trailing whitespace can be meaningful (two-space line break)
+[*.md]
+trim_trailing_whitespace = false
+
+# Windows batch scripts keep CRLF
+[*.{bat,cmd,ps1}]
+end_of_line = crlf

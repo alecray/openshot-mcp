@@ -1,0 +1,17 @@
+# Dependabot — keep GitHub Actions pinned versions current.
+# Note: this only updates GitHub Actions. For pure engine projects (Unreal/Godot) with no
+# package ecosystem, this file is noise — delete it. For software stacks, add an ecosystem
+# block (npm / pub / gradle / etc.) below.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    labels: ["dependencies"]
+
+  # Example software-stack block (uncomment + adjust):
+  # - package-ecosystem: "npm"
+  #   directory: "/"
+  #   schedule:
+  #     interval: "weekly"

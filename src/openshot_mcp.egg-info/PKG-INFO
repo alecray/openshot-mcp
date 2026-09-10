@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: openshot-mcp
+Version: 0.1.0
+Summary: File-level MCP server for OpenShot 4.0 projects: import media, analyze music into a beat grid, place clips on it.
+Requires-Python: >=3.12
+Requires-Dist: mcp>=2
+Requires-Dist: librosa>=1.0
+Requires-Dist: soundfile
+Requires-Dist: numpy
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
