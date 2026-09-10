@@ -180,7 +180,8 @@ class Project:
             "width": self.data.get("width"),
             "height": self.data.get("height"),
             "profile": self.data.get("profile"),
-            "layers": [{"id": lay["id"], "number": lay["number"], "label": lay.get("label", "")} for lay in self.data["layers"]],
+            "layers": [{"id": lay["id"], "number": lay["number"], "label": lay.get("label", "")}
+                       for lay in self.data["layers"]],
             "files": self.list_media(),
             "clips": len(self.data["clips"]),
             "markers": len(self.data["markers"]),
