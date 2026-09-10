@@ -35,7 +35,7 @@ in OpenShot and edits by hand. Reusable across every future trailer, not just Ro
 | IDs are 10-char uppercase alphanumeric (`2BRLK63IRW`) | same file |
 | Layers: `[{"id":"L1","number":1000000,"label":""}, … L5 5000000]` | same file |
 | Project `duration` is 300 (timeline capacity), `scale` is zoom, `history` is `{undo:[],redo:[]}` shape | same file; Astra review 2026-09-10 (`E:\claude_scratch\roomstack-trailer\openshot\astra_answer.md`) |
-| OpenShot autosaves every 3 min while open (`enable-auto-save: true`, `autosave-interval: 3`), writes recovery zips to `~/.openshot_qt/recovery/` | `C:\Users\ajray\.openshot_qt\openshot.settings` |
+| OpenShot autosaves every 3 min while open (`enable-auto-save: true`, `autosave-interval: 3`), writes recovery zips to `~/.openshot_qt/recovery/` | `~\.openshot_qt\openshot.settings` |
 | Unsaved-changes marker: window title starts with `*` | `Get-Process openshot-qt` MainWindowTitle |
 | librosa 1.0.0 on the trailer wav: tempo 89.1 (true 88), first tracked beat at 2.763 s (true grid starts at 0; section A is too sparse for onsets), bar-energy section detection lands within ±1 bar of 4 of 6 true section changes | `/tmp/beat_probe.py` run 2026-09-10 |
 | ffprobe for the 20 capture clips: h264, 1920x1080, 60/1 fps, 240 frames (c14: 239), no audio, time_base 1/15360 | `E:\claude_scratch\roomstack-trailer\openshot\clip_probe.json` |
@@ -112,7 +112,7 @@ in-memory model; nothing touches disk until `save_project`. `get_timeline` reads
 
 ### Skill layer (out of this repo, but the consumer)
 
-The existing `game-trailer-editor` skill (`C:\Users\ajray\.claude\skills\game-trailer-editor\`)
+The existing `game-trailer-editor` skill (`~\.claude\skills\game-trailer-editor\`)
 gets a new stage: after the clip inventory and beat analysis, call `place_sequence` instead of
 writing an ffmpeg EDL, then hand the `.osp` to Alec. That rewrite is a follow-up task, not v1.
 

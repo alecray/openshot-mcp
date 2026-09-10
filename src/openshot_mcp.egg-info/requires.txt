@@ -1,7 +1,0 @@
-mcp>=2
-librosa>=1.0
-soundfile
-numpy
-
-[dev]
-pytest

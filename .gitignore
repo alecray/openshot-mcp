@@ -47,3 +47,7 @@ node_modules/
 __pycache__/
 *.pyc
 
+
+# Python packaging
+*.egg-info/
+build/

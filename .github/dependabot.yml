@@ -10,8 +10,8 @@ updates:
       interval: "monthly"
     labels: ["dependencies"]
 
-  # Example software-stack block (uncomment + adjust):
-  # - package-ecosystem: "npm"
-  #   directory: "/"
-  #   schedule:
-  #     interval: "weekly"
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies"]

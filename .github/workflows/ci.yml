@@ -29,16 +29,19 @@ jobs:
       - name: Install just
         uses: extractions/setup-just@v4
 
-      # Install the stack toolchain here (uncomment what applies):
-      # - uses: actions/setup-node@v4   # with: { node-version: 22 }
-      # - uses: subosito/flutter-action@v2
-      # - uses: actions/setup-java@v4   # with: { distribution: temurin, java-version: 21 }
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install ffmpeg (ffprobe is needed by the tests)
+        run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
+
+      - name: Build
+        run: just build
 
       - name: Lint
         run: just lint
 
       - name: Test
         run: just test
-
-      - name: Build
-        run: just build

@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from openshot_mcp.project import Project
 from openshot_mcp.grid import BeatGrid
+from openshot_mcp.project import Project
 
 FIX = Path(__file__).parent / "fixtures"
 TEMPLATE = Path(__file__).parents[1] / "templates" / "empty_720p30.osp"
@@ -18,7 +18,8 @@ def test_load_save_roundtrip(tmp_path):
     p.save(out, backup=False, check_lock=False)
     a = json.loads(TEMPLATE.read_text(encoding="utf-8"))
     b = json.loads(out.read_text(encoding="utf-8"))
-    a.pop("history"); b.pop("history")
+    a.pop("history")
+    b.pop("history")
     assert a == b
 
 
@@ -76,7 +77,7 @@ def test_validate_catches_overlap_and_dangling():
 
 
 def test_save_refuses_when_open(tmp_path, monkeypatch):
-    import openshot_mcp.lock as lock
+    from openshot_mcp import lock
     p = Project.load(TEMPLATE)
     out = tmp_path / "x.osp"
     monkeypatch.setattr(lock, "is_open_in_openshot", lambda path: True)

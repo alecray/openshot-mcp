@@ -1,9 +1,6 @@
 """MCP tool surface. Thin: every tool maps to one Project/BeatGrid call."""
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Optional
-
 from mcp.server.mcpserver import MCPServer
 
 from .grid import BeatGrid, Section, analyze_wav
@@ -15,7 +12,7 @@ mcp = MCPServer("openshot", version=__import__("openshot_mcp").__version__, inst
     "OpenShot must NOT have the project open when you save (its autosave overwrites the file)."
 ))
 
-_state: dict[str, Optional[Project]] = {"project": None}
+_state: dict[str, Project | None] = {"project": None}
 
 
 def _p() -> Project:
@@ -56,8 +53,8 @@ def list_media() -> list[dict]:
 
 
 @mcp.tool()
-def analyze_music(file_id: str, bpm: Optional[float] = None, offset_s: Optional[float] = None,
-                  sections: Optional[list[float]] = None, n_sections: int = 6,
+def analyze_music(file_id: str, bpm: float | None = None, offset_s: float | None = None,
+                  sections: list[float] | None = None, n_sections: int = 6,
                   add_markers: bool = True, apply: bool = True) -> dict:
     """Detect tempo/offset of an imported audio file with librosa (onset-grid search, ~0.1 BPM) plus a
     ROUGH section-change guess, and (apply=True) set it as the active beat grid. Explicit
@@ -76,8 +73,8 @@ def analyze_music(file_id: str, bpm: Optional[float] = None, offset_s: Optional[
 
 
 @mcp.tool()
-def set_grid(bpm: float, offset_s: float = 0.0, sections: Optional[list[float]] = None,
-             beats_per_bar: int = 4, add_markers: bool = True, total_s: Optional[float] = None) -> dict:
+def set_grid(bpm: float, offset_s: float = 0.0, sections: list[float] | None = None,
+             beats_per_bar: int = 4, add_markers: bool = True, total_s: float | None = None) -> dict:
     """Set the beat grid explicitly (e.g. from the DAW's known BPM) without analyzing audio."""
     p = _p()
     starts = sorted(set([0.0] + [float(s) for s in (sections or [])]))
@@ -91,7 +88,7 @@ def set_grid(bpm: float, offset_s: float = 0.0, sections: Optional[list[float]] 
 
 
 @mcp.tool()
-def get_grid(total_s: Optional[float] = None) -> dict:
+def get_grid(total_s: float | None = None) -> dict:
     """Return the active beat grid, with beat times up to total_s if given."""
     p = _p()
     if p.grid is None:
@@ -101,7 +98,7 @@ def get_grid(total_s: Optional[float] = None) -> dict:
 
 @mcp.tool()
 def add_clip(file_id: str, layer: int, position_s: float, start_s: float = 0.0,
-             end_s: Optional[float] = None, snap: str = "beat", title: Optional[str] = None,
+             end_s: float | None = None, snap: str = "beat", title: str | None = None,
              allow_overlap: bool = False) -> dict:
     """Place one clip. snap = beat | bar | none quantizes position_s to the grid (frame-exact).
     end_s=None ends the clip at the next grid line (or file end). Refuses same-layer overlap."""
@@ -118,10 +115,11 @@ def place_sequence(layer: int, items: list[dict], from_s: float = 0.0, default_b
 
 
 @mcp.tool()
-def update_clip(clip_id: str, position_s: Optional[float] = None, start_s: Optional[float] = None,
-                end_s: Optional[float] = None, layer: Optional[int] = None, title: Optional[str] = None) -> dict:
+def update_clip(clip_id: str, position_s: float | None = None, start_s: float | None = None,
+                end_s: float | None = None, layer: int | None = None, title: str | None = None) -> dict:
     """Change a clip's timeline position, in/out points, layer, or title."""
-    return _row(_p().update_clip(clip_id, position_s=position_s, start_s=start_s, end_s=end_s, layer=layer, title=title))
+    c = _p().update_clip(clip_id, position_s=position_s, start_s=start_s, end_s=end_s, layer=layer, title=title)
+    return _row(c)
 
 
 @mcp.tool()
@@ -144,7 +142,7 @@ def clear_markers() -> dict:
 
 
 @mcp.tool()
-def get_timeline(layer: Optional[int] = None) -> dict:
+def get_timeline(layer: int | None = None) -> dict:
     """List clips (sorted by layer, position) plus gaps/overlaps per layer, markers, and end time."""
     return _p().timeline(layer)
 
@@ -156,7 +154,7 @@ def validate_project() -> dict:
 
 
 @mcp.tool()
-def save_project(path: Optional[str] = None, backup: bool = True, force: bool = False) -> dict:
+def save_project(path: str | None = None, backup: bool = True, force: bool = False) -> dict:
     """Validate and atomically write the .osp (timestamped .bak beside it). Refuses while OpenShot has it
     open (force=True bypasses that heuristic only) and refuses if the file changed on disk since open_project."""
     return _p().save(path, backup=backup, force=force)

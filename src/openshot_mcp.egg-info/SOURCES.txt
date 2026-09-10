@@ -1,7 +1,0 @@
-README.md
-pyproject.toml
-src/openshot_mcp.egg-info/PKG-INFO
-src/openshot_mcp.egg-info/SOURCES.txt
-src/openshot_mcp.egg-info/dependency_links.txt
-src/openshot_mcp.egg-info/requires.txt
-src/openshot_mcp.egg-info/top_level.txt

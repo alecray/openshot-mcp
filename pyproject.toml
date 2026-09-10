@@ -1,12 +1,22 @@
 [project]
 name = "openshot-mcp"
 version = "0.1.0"
-description = "File-level MCP server for OpenShot 4.0 projects: import media, analyze music into a beat grid, place clips on it."
+description = "MCP server that edits OpenShot 4.0 projects: import media, detect a music beat grid, place clips on it."
 requires-python = ">=3.12"
+license = "MIT"
+readme = "README.md"
+authors = [{ name = "Alec Ray" }]
+keywords = ["mcp", "openshot", "video-editing", "trailer"]
+classifiers = [
+  "Programming Language :: Python :: 3.12",
+]
 dependencies = ["mcp>=2", "librosa>=1.0", "soundfile", "numpy"]
 
 [project.optional-dependencies]
-dev = ["pytest"]
+dev = ["pytest", "ruff"]
+
+[project.urls]
+Homepage = "https://github.com/alecray/openshot-mcp"
 
 [build-system]
 requires = ["setuptools>=68"]
@@ -17,3 +27,10 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]

@@ -16,21 +16,21 @@ default:
 
 # Launch/run the project (app, game, dev server...).
 run:
-    @echo "TODO: implement 'run' for this stack (e.g. npm run dev / godot . / flutter run)"
+    python -m openshot_mcp
 
 # Produce a build/package artifact.
 build:
-    @echo "TODO: implement 'build' for this stack (e.g. npm run build / dotnet build / flutter build)"
+    python -m pip install -e ".[dev]"
 
 # --- ADVISORY: optional for engine stacks without a clean CLI ---
 
 # Run automated tests. Leave as the SKIP stub if the stack has no CLI tests (e.g. some Unreal/Godot projects).
 test:
-    @echo "SKIP: not implemented for this stack"
+    python -m pytest -q
 
 # Run the linter/formatter check. Leave as the SKIP stub if N/A.
 lint:
-    @echo "SKIP: not implemented for this stack"
+    python -m ruff check src tests
 
 # --- Aggregate / utility (stack-agnostic) ---
 

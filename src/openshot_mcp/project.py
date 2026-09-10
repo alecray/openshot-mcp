@@ -94,16 +94,16 @@ class Project:
 
     # ---- lifecycle ---------------------------------------------------------
     @classmethod
-    def load(cls, path: str | Path) -> "Project":
+    def load(cls, path: str | Path) -> Project:
         p = Path(path).resolve()
         data = json.loads(p.read_text(encoding="utf-8"))
         ver = (data.get("version") or {}).get("openshot-qt")
         if ver != SUPPORTED_VERSION:
-            raise ValueError(f"Unsupported openshot-qt project version {ver!r}; this server supports {SUPPORTED_VERSION}")
+            raise ValueError(f"unsupported openshot-qt project version {ver!r}; supported: {SUPPORTED_VERSION}")
         return cls(data, p, _sha256(p))
 
     @classmethod
-    def new(cls, path: str | Path, template: str = "empty_720p30.osp") -> "Project":
+    def new(cls, path: str | Path, template: str = "empty_720p30.osp") -> Project:
         data = json.loads((TEMPLATES / template).read_text(encoding="utf-8"))
         return cls(data, Path(path).resolve())
 
@@ -180,7 +180,7 @@ class Project:
             "width": self.data.get("width"),
             "height": self.data.get("height"),
             "profile": self.data.get("profile"),
-            "layers": [{"id": l["id"], "number": l["number"], "label": l.get("label", "")} for l in self.data["layers"]],
+            "layers": [{"id": lay["id"], "number": lay["number"], "label": lay.get("label", "")} for lay in self.data["layers"]],
             "files": self.list_media(),
             "clips": len(self.data["clips"]),
             "markers": len(self.data["markers"]),
@@ -204,8 +204,9 @@ class Project:
 
     # ---- clips -------------------------------------------------------------
     def _layer_ok(self, layer: int) -> None:
-        if not any(int(l["number"]) == int(layer) for l in self.data["layers"]):
-            raise ValueError(f"layer {layer} does not exist; layers: {[l['number'] for l in self.data['layers']]}")
+        if not any(int(lay["number"]) == int(layer) for lay in self.data["layers"]):
+            known = [lay["number"] for lay in self.data["layers"]]
+            raise ValueError(f"layer {layer} does not exist; layers: {known}")
 
     def _overlaps(self, layer: int, pos: float, dur: float, ignore: str | None = None) -> list[str]:
         out = []
@@ -252,7 +253,7 @@ class Project:
         dur = end - start
         hits = self._overlaps(layer, pos, dur)
         if hits and not allow_overlap:
-            raise ValueError(f"overlaps clip(s) {hits} on layer {layer} at {pos:.3f}s; pass allow_overlap=True to force")
+            raise ValueError(f"overlaps clip(s) {hits} on layer {layer} at {pos:.3f}s; allow_overlap=True to force")
         clip = clip_from_file(f, gen_id(self._ids()), layer, pos, start, end, title)
         self.data["clips"].append(clip)
         return clip
@@ -352,7 +353,7 @@ class Project:
         if len(ids) != len(set(ids)):
             problems.append("duplicate ids")
         fids = {f["id"] for f in self.data["files"]}
-        layers = {int(l["number"]) for l in self.data["layers"]}
+        layers = {int(lay["number"]) for lay in self.data["layers"]}
         for c in self.data["clips"]:
             if c["file_id"] not in fids:
                 problems.append(f"clip {c['id']} has dangling file_id {c['file_id']}")

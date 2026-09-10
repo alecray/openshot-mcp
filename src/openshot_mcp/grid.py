@@ -52,7 +52,8 @@ class BeatGrid:
         return self.beat_time(n * self.beats_per_bar)
 
     def to_frame(self, t: Fraction | float) -> int:
-        return int(round(Fraction(str(t)) * self.fps_frac)) if not isinstance(t, Fraction) else int(round(t * self.fps_frac))
+        ft = t if isinstance(t, Fraction) else Fraction(str(t))
+        return int(round(ft * self.fps_frac))
 
     def frame_to_s(self, frame: int) -> float:
         return float(Fraction(frame) / self.fps_frac)
@@ -115,7 +116,7 @@ def analyze_wav(path: str | Path, fps: dict, bpm: float | None = None, offset_s:
     tempos = librosa.feature.tempo(y=y, sr=sr, aggregate=None)
     spread = float(np.std(tempos)) if len(tempos) else 0.0
     detected.update(tempo=tempo_est, tempo_spread=spread, first_beat_s=float(beats[0]) if len(beats) else None,
-                    n_tracked_beats=int(len(beats)))
+                    n_tracked_beats=len(beats))
 
     # Refine tempo and phase by maximizing onset strength sampled on the candidate grid.
     hop = 128
