@@ -1,6 +1,6 @@
 # Spec — openshot-mcp v1: file-level OpenShot project MCP with beat-grid placement
 
-Date: 2026-09-10. Status: draft, pending adversarial review. Owner: Alec. Author: Claude.
+Date: 2026-09-10. Status: implemented v0.1.0 (Sol review + response in `docs/reviews/`). Owner: Alec. Author: Claude.
 
 ## Goal
 
@@ -151,12 +151,12 @@ save from OpenShot and reopen keeps the arrangement. Expected: no "missing file"
 
 ## Definition of Done
 
-- [ ] All 7 tests pass via the command above (output pasted in the PR/commit).
-- [ ] Roomstack trailer project has the 15 clips + 7 section markers placed through the MCP; opens
+- [x] All 10 tests pass via the command above (output pasted in the PR/commit).
+- [x] Roomstack trailer project has the 15 clips + 7 section markers placed through the MCP (2026-09-10 12:38, backup `roomstack-trailer.20260910-123821.osp.bak`); opens
       in OpenShot without dialogs; Alec confirms visually.
-- [ ] `README.md` documents install (`uv venv` + `uv pip install -e .`), `.mcp.json` snippet, tool
+- [x] `README.md` documents install (`uv venv` + `uv pip install -e .`), `.mcp.json` snippet, tool
       list, and the "close OpenShot before save" rule.
-- [ ] `docs/DESIGN.md` and `docs/CURRENT_TASK.md` updated; ADR 0001 records "file-level, not live".
+- [x] `docs/DESIGN.md` and `docs/CURRENT_TASK.md` updated; ADR 0001 records "file-level, not live".
 - [ ] Repo pushed to `git@github.com:alecray/openshot-mcp.git` (create with `gh repo create --private`).
 
 ## Known traps

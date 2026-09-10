@@ -1,9 +1,9 @@
 # Current task
 
-> Tiny living session-state file. Claude reads this at session start and updates it on `/ship`
-> and at the end of a session. Keep it short — this is "where we left off," not a backlog.
-
-- **Phase:** v0.1 — project setup
-- **Last action:** Initialized from template.
-- **Next action:** Build the first vertical slice toward the v0.1 milestone (see `docs/DESIGN.md` §6).
-- **Open questions:** none yet.
+- **Phase:** v0.1.0 shipped 2026-09-10 (15 tools; Roomstack trailer placed through the MCP).
+- **Last action:** Applied Sol's spec review fixes (path codec, hash guard, fsync save, frame-rounded
+  durations, `list_media`); applied Astra's 15-shot plan to `E:\OpenShot-Video-Editor-Projects\roomstack-trailer.osp`;
+  OpenShot reopened it clean.
+- **Next action:** Alec eyeballs the timeline in OpenShot. Then v0.2: re-point the
+  `game-trailer-editor` skill (`C:\Users\ajray\.claude\skills\game-trailer-editor\`) at this server.
+- **Open questions:** see `docs/DESIGN.md` §8.
