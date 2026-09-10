@@ -4,12 +4,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 
 from .grid import BeatGrid, Section, analyze_wav
 from .project import Project
 
-mcp = FastMCP("openshot", instructions=(
+mcp = MCPServer("openshot", version=__import__("openshot_mcp").__version__, instructions=(
     "File-level editor for OpenShot 4.0 .osp projects. Workflow: open_project -> import_media -> "
     "analyze_music (or set_grid) -> place_sequence/add_clip -> get_timeline -> save_project. "
     "OpenShot must NOT have the project open when you save (its autosave overwrites the file)."
